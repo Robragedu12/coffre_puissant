@@ -1,41 +1,29 @@
 package reseau;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.Objects;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class test {
-
-    public static void main(String[] args) throws IOException {
-        int port = 40981;
-        String ip = "10.157.12.211";
-
-        // Lancer le serveur dans un thread séparé
-        Thread serveurThread = new Thread(() -> {
-            System.out.println("===== LANCEMENT SERVEUR =====");
-            Serveur.lancerServeur(port);
-        });
-        serveurThread.setDaemon(true);
-        serveurThread.start();
+    public static void main(String[] args) {
+        int port = 12345;
+        String fichierExemple = "mon_test.txt";
 
         try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
+            Files.writeString(Paths.get(fichierExemple), "Message secret : le serveur ne possède aucune clé.", StandardCharsets.UTF_8);
+
+            String ipServeur = AdresseServeurAuto.getIPv4("Intel");
+            if (ipServeur == null) ipServeur = "127.0.0.1";
+
+            Thread threadServeur = new Thread(() -> Serveur.lancerServeur(port));
+            threadServeur.start();
+            Thread.sleep(500);
+
+            Client.demarrerSessionInteractive(port, ipServeur);
+
+            threadServeur.join();
+        } catch (Exception e) {
             e.printStackTrace();
-        }
-
-        // Lancer le client
-        System.out.println("===== LANCEMENT CLIENT =====");
-        BufferedReader clavier = new BufferedReader(new InputStreamReader(System.in));
-
-        // authentification (non)
-        System.out.print("Saisir le mdp : ");
-        String messageTexte = clavier.readLine();
-        if (Objects.equals(messageTexte, "mdp")){
-            Client.lancerClient(port, ip);
-        } else {
-            System.out.println("Pas le bon mdp");
         }
     }
 }

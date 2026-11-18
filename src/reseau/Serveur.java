@@ -5,65 +5,62 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
-import javax.crypto.* ;
-import javax.crypto.spec.SecretKeySpec;
-import java.security.* ;
 import java.util.Base64;
+import java.util.List;
 
 public class Serveur {
     public static void lancerServeur(int port) {
         try {
             String ip = AdresseServeurAuto.getIPv4("Intel");
-            System.out.println("Adresse serveur : " + ip);
+            if (ip == null) ip = "127.0.0.1";
             InetAddress adr = InetAddress.getByName(ip);
 
             try (ServerSocket s = new ServerSocket(port, 10, adr)) {
-                System.out.println("Serveur en attente de connexion...");
+                System.out.println("[Serveur] Démarré sur " + ip + ":" + port);
 
-                try (Socket c = s.accept()) {
-                    System.out.println("Client connecté");
+                while (true) {
+                    try (Socket c = s.accept()) {
+                        BufferedReader entree = new BufferedReader(new InputStreamReader(c.getInputStream(), StandardCharsets.UTF_8));
+                        PrintWriter sortie = new PrintWriter(new OutputStreamWriter(c.getOutputStream(), StandardCharsets.UTF_8), true);
 
-                    BufferedReader entree = new BufferedReader(new InputStreamReader(c.getInputStream(), StandardCharsets.UTF_8));
-                    PrintWriter sortie = new PrintWriter(new OutputStreamWriter(c.getOutputStream(), StandardCharsets.UTF_8), true);
+                        String commande = entree.readLine();
+                        String login = entree.readLine();
 
-                    String cleClient;
-                    String messageCrypte;
-                    String messageClient;
+                        if ("ENVOYER".equals(commande)) {
+                            String nomFichier = entree.readLine();
+                            String fichierCrypteBase64 = entree.readLine();
 
-                    while ((cleClient = entree.readLine()) != null) {
-                        messageCrypte = entree.readLine();
+                            byte[] donneesChiffrees = Base64.getDecoder().decode(fichierCrypteBase64);
+                            String idStockage = Stockage.sauvegarderFichier(login, nomFichier, donneesChiffrees);
 
-                        if (cleClient == null || messageCrypte == null) {
+                            System.out.println("[Serveur] Fichier chiffré stocké pour '" + login + "' -> " + idStockage);
+                            sortie.println(idStockage);
+
+                        } else if ("LIRE".equals(commande)) {
+                            String idStockage = entree.readLine();
+
+                            try {
+                                byte[] donneesChiffrees = Stockage.lireFichier(login, idStockage);
+                                String fichierCrypteBase64 = Base64.getEncoder().encodeToString(donneesChiffrees);
+
+                                sortie.println("OK");
+                                sortie.println(fichierCrypteBase64);
+                            } catch (IOException e) {
+                                sortie.println("ERREUR : " + e.getMessage());
+                            }
+                        } else if ("LIST".equals(commande)) {
+                            List<String> fichiers = Stockage.listerFichiers(login);
+                            sortie.println(fichiers.size());
+                            for (String ligne : fichiers) {
+                                sortie.println(ligne);
+                            }
+                        } else if ("QUITTER".equals(commande)) {
+                            System.out.println("[Serveur] Arrêt.");
                             break;
-                        }
-
-                        System.out.println("Clé reçue : " + cleClient);
-                        System.out.println("Message chiffré reçu : " + messageCrypte);
-                        byte[] decodedKeyBytes = Base64.getDecoder().decode(cleClient);
-                        byte[] decodedResultBytes = Base64.getDecoder().decode(messageCrypte);
-
-                        Cipher cipher = Cipher.getInstance("AES") ;
-                        SecretKeySpec cleClientOk = new SecretKeySpec(decodedKeyBytes, "AES");
-                        cipher.init(Cipher.DECRYPT_MODE, cleClientOk) ;
-
-
-                        byte[] original = cipher.doFinal(decodedResultBytes) ;
-
-                        messageClient = new String(original);
-                        if ("bye".equalsIgnoreCase(messageClient.trim())) {
-                            sortie.println("fin de transmission");
-                            break;
-                        } else {
-                            sortie.println("Message bien reçu : " + messageClient);
                         }
                     }
-                } catch (NoSuchPaddingException | NoSuchAlgorithmException | IllegalBlockSizeException |
-                         BadPaddingException | InvalidKeyException e) {
-                    throw new RuntimeException(e);
                 }
-                System.out.println("Connexion client fermée. Le serveur s'arrête.");
             }
-
         } catch (IOException e) {
             e.printStackTrace();
         }
