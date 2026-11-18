@@ -1,5 +1,8 @@
 package auth;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.*;
 import javax.security.auth.login.LoginException;
@@ -8,7 +11,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.InvalidKeyException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,6 +28,7 @@ public class Login implements LoginModule {
     private boolean succeeded = false;
     private String username;
     private Principal userPrincipal;
+    private final chiffrementMdp chiffreur = new chiffrementMdp();
 
     @Override
     public void initialize(Subject subject, CallbackHandler callbackHandler,
@@ -52,17 +58,23 @@ public class Login implements LoginModule {
             if (username == null || password == null) {
                 throw new LoginException("Identifiants manquants");
             }
-
             // Lecture du JSON sans bibliothèque externe
             Map<String, String> users = parseSimpleJson(usersFilePath);
 
-            String storedPassword = users.get(username);
+            String storedPasswordChiffre = users.get(username);
             String inputPassword = new String(password);
             passwordCallback.clearPassword();
 
-            // Comparaison sécurisée en temps constant
-            if (storedPassword != null && MessageDigest.isEqual(
-                    storedPassword.getBytes(StandardCharsets.UTF_8),
+            if (storedPasswordChiffre == null) {
+                throw new LoginException("Identifiant ou mot de passe incorrect");
+            }
+
+            // On déchiffre le mot de passe stocké dans le JSON
+            String storedPasswordClair = chiffreur.dechiffrement(storedPasswordChiffre);
+
+            // Comparaison sécurisée en temps constant des deux mots de passe en clair
+            if (MessageDigest.isEqual(
+                    storedPasswordClair.getBytes(StandardCharsets.UTF_8),
                     inputPassword.getBytes(StandardCharsets.UTF_8))) {
                 succeeded = true;
                 return true;
@@ -72,6 +84,9 @@ public class Login implements LoginModule {
 
         } catch (IOException | UnsupportedCallbackException e) {
             throw new LoginException("Erreur lors de la lecture du fichier : " + e.getMessage());
+        } catch (NoSuchPaddingException | IllegalBlockSizeException | NoSuchAlgorithmException | BadPaddingException |
+                 InvalidKeyException e) {
+            throw new RuntimeException(e);
         }
     }
 
