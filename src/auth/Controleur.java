@@ -7,26 +7,31 @@ import java.util.Scanner;
 
 public class Controleur implements CallbackHandler {
 
+    private String id;
+    private char[] mdp;
+
+    public Controleur(String id, char[] mdp) {
+        this.id = id;
+        this.mdp = mdp;
+    }
+
+    public Controleur() {
+    }
+
     @Override
-    public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
-        Scanner scanner = new Scanner(System.in);
-        Console console = System.console();
+    public void handle(Callback[] callbacks)
+            throws IOException, UnsupportedCallbackException {
 
         for (Callback callback : callbacks) {
+
             if (callback instanceof NameCallback nc) {
-                System.out.print(nc.getPrompt());
-                nc.setName(scanner.nextLine());
+                nc.setName(id);
+
             } else if (callback instanceof PasswordCallback pc) {
-                System.out.print(pc.getPrompt());
-                if (console != null) {
-                    // Masque la saisie dans un vrai terminal
-                    pc.setPassword(console.readPassword());
-                } else {
-                    // Fallback pour les consoles d'IDE (IntelliJ, Eclipse)
-                    pc.setPassword(scanner.nextLine().toCharArray());
-                }
+                pc.setPassword(mdp);
+
             } else {
-                throw new UnsupportedCallbackException(callback, "Callback non supporté");
+                throw new UnsupportedCallbackException(callback);
             }
         }
     }

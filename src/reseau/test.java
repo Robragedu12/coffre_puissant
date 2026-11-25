@@ -48,7 +48,6 @@ public class test {
         }catch (LoginException e) {
             throw new RuntimeException(e);
         }
-            Client.lancerClient(port, ip);
 
     }
 }

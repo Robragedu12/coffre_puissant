@@ -35,7 +35,7 @@ public class Login implements LoginModule {
                            Map<String, ?> sharedState, Map<String, ?> options) {
         this.subject = subject;
         this.callbackHandler = callbackHandler;
-        this.usersFilePath = (String) options.get("user.json");
+        this.usersFilePath = (String) options.get("users.json");
         if (this.usersFilePath == null) {
             this.usersFilePath = "users.json";
         }
