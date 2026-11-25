@@ -136,7 +136,8 @@ public class CoffreFortUI extends JFrame {
                 lc.login();
 
                 JOptionPane.showMessageDialog(this, "Connexion réussie !");
-
+                dispose();
+                SwingUtilities.invokeLater(() -> new GestionnaireFichiers(id).setVisible(true));
             } catch (LoginException ex) {
 
                 JOptionPane.showMessageDialog(this, ex.getMessage());
