@@ -7,8 +7,23 @@ import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 import javax.swing.*;
 import java.awt.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class CoffreFortUI extends JFrame {
+
+    private static final String PASSWORD_PATTERN =
+            "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!])(?=\\S+$).{8,}$";
+
+    private static final Pattern pattern = Pattern.compile(PASSWORD_PATTERN);
+
+    private static boolean isValid(String password) {
+        if (password == null) {
+            return false;
+        }
+        Matcher matcher = pattern.matcher(password);
+        return matcher.matches();
+    }
 
     public CoffreFortUI() {
 
@@ -62,6 +77,8 @@ public class CoffreFortUI extends JFrame {
                         "Erreur",
                         JOptionPane.ERROR_MESSAGE
                 );
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
             }
         });
 
@@ -84,7 +101,7 @@ public class CoffreFortUI extends JFrame {
         setVisible(true);
     }
 
-    private void ouvrirConnexion() throws LoginException {
+    private void ouvrirConnexion() throws Exception {
 
         JTextField champId = new JTextField(15);
         JPasswordField champMdp = new JPasswordField(15);
@@ -172,6 +189,17 @@ public class CoffreFortUI extends JFrame {
             String id = champId.getText();
             String mdp = champMdp.getText();
             SignIn signIn = new SignIn();
+
+            if (signIn.obtenirId().contains(id)){
+                JOptionPane.showMessageDialog(this, "Id déjà utilisé");
+                return ;
+            }
+
+            if (!isValid(mdp)){
+                JOptionPane.showMessageDialog(this, "Mdp Non valide");
+                return ;
+            }
+
             signIn.ajoutUtilisateur(mdp, id);
 
             JOptionPane.showMessageDialog(this, "Création du compte réussi !");

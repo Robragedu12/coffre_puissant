@@ -3,7 +3,9 @@ package auth;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -42,5 +44,9 @@ public class SignIn {
 
         String jsonFinal = "{\n" + entrees + "\n}";
         Files.writeString(fichierJson, jsonFinal, StandardCharsets.UTF_8);
+    }
+
+    public List<String> obtenirId() throws Exception {
+        return new ArrayList<>(lireUtilisateurs().keySet());
     }
 }
